@@ -1,0 +1,1 @@
+worker: python bot/visit_places_bot.py $PORT
