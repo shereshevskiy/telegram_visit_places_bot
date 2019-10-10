@@ -106,7 +106,7 @@ def main():
 
     @bot.message_handler(func=lambda message: get_state(message) == NAME)
     def handle_name(message):
-        # название
+        # name
         print("place_ids[message.chat.id]", place_ids[message.chat.id], "\n")
         update_place(message.chat.id, "name", message.text)
         bot.send_message(message.chat.id, text="Укажи адрес")
@@ -122,7 +122,7 @@ def main():
     @bot.message_handler(content_types=["photo"])
     @bot.message_handler(func=lambda message: get_state(message) == PHOTO)
     def handle_photo(message):
-        # фото
+        # photo
         if message.photo:
             photo_id = message.photo[0].file_id
             file_info = bot.get_file(photo_id)
@@ -139,7 +139,7 @@ def main():
 
     @bot.message_handler(func=lambda message: get_state(message) == COORDINATES)
     def handle_coordinates(message):
-        # координаты
+        # coordinates
         text = message.text
         try:
             coord = [str(float(coord.strip())) for coord in text.split(",")]
