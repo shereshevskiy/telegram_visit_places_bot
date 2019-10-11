@@ -4,12 +4,17 @@ import os
 from collections import defaultdict
 import requests
 
+# abs path to project
+abs_path_to_runfile = os.path.dirname(os.path.abspath(__file__))
+project_abs_path = os.path.join(abs_path_to_runfile, "..")
 
 # initialization
 token = "780799099:AAGGjJfeKRiXX7D34_ZrW19n_zxOFcZbs70"
-photo_path = os.path.join("..", "photos")
+photo_path = os.path.join(project_abs_path, "photos")
 my_api_key = "AIzaSyB5N7lIE2T6a3hrUFm9dYvwqTaa1mMVC_c"
 no_data_message = "Нет данных"
+
+
 
 START, NAME, ADDRESS, PHOTO, COORDINATES = range(5)
 USER_STATE = defaultdict(lambda: START)
