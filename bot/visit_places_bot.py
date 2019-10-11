@@ -98,6 +98,10 @@ def get_places_with_dists(my_coords, places_with_locs, api_key):
     return places_with_dists
 
 
+def send_place_to_chat(place):
+    pass  # TODO
+
+
 # bot
 def main():
     bot = telebot.TeleBot(token)
@@ -159,7 +163,7 @@ def main():
     def handle_list(message):
         if PLACES[message.chat.id] != defaultdict(lambda: defaultdict(lambda: no_data_message)):
             text = """
-    Отправьте вашу локацию. Будут выведены все сохраненные места в радиусе 500 м
+    Отправьте вашу локацию. Будут выведены все сохраненные места в радиусе 500м
     """
         else:
             text = """
@@ -175,13 +179,15 @@ def main():
         my_coords = (str(my_location.latitude), str(my_location.longitude))
         places_less500 = get_places_less500(my_coords, places)
         if places_less500:
-            text = f"{places_less500}"
+            bot.send_message(message.chat.id, text="Ваши сохраненные места в не далее 500м:")
+            for place in places_less500:
+                send_place_to_chat(place)
         else:
             text = """
     В радиусе 500м ваших сохраненных мест не обнаружено :(. 
     Вы можете добавить новые места с помощью команды /add
     """
-        bot.send_message(message.chat.id, text=text)
+            bot.send_message(message.chat.id, text=text)
 
     # # list для последних 10 добавленных мест
     # @bot.message_handler(commands=["list"])
