@@ -14,7 +14,7 @@ project_abs_path = os.path.join(abs_path_to_runfile, "..")
 token = "780799099:AAGGjJfeKRiXX7D34_ZrW19n_zxOFcZbs70"
 photo_path = os.path.join(project_abs_path, "photos")
 my_api_key = "AIzaSyB5N7lIE2T6a3hrUFm9dYvwqTaa1mMVC_c"
-no_data_message = "Нет данных"
+no_data_message = "нет данных"
 
 
 START, NAME, ADDRESS, PHOTO, COORDINATES = range(5)
@@ -103,6 +103,7 @@ mark_less500 = "Места не далее 500м"
 mark_last10 = "Последние 10 мест"
 what_list_need = [mark_less500, mark_last10]
 
+
 def create_keyboard():
     keyboard = types.InlineKeyboardMarkup(row_width=2)
     buttons = [types.InlineKeyboardButton(text=item, callback_data=item) for item in what_list_need]
@@ -124,7 +125,7 @@ def main():
 #{num}
 Название: {place["name"]}
 Адрес: {place["address"]}
-Расстояние до вас: {place["distance"]}м
+Расстояние до вас (м): {place["distance"]}
 """
         if place["photo_id"]:
             # send photo with text
@@ -133,6 +134,16 @@ def main():
         else:
             # send message with text
             text += "Фото: отсутствует"
+            bot.send_message(message.chat.id, text=text)
+
+    def send_selected_places_to_chat(message, selected_places, text_by_success, text_by_fail):
+        if selected_places:
+            bot.send_message(message.chat.id, text=text_by_success)
+            for num, pair in enumerate(selected_places):
+                place_id, place = pair
+                send_place_to_chat(place, message, num + 1)
+        else:
+            text = text_by_fail
             bot.send_message(message.chat.id, text=text)
 
     @bot.message_handler(commands=["add"])
@@ -212,16 +223,9 @@ def main():
             places = PLACES[message.chat.id]
             places_all = sorted(list(places.items()), key=lambda x: x[0], reverse=True)
             places_last10 = places_all[:10]
-            if places_last10:
-                bot.send_message(message.chat.id, text="Ваши до 10 последних сохраненных мест:")
-                for num, pair in enumerate(places_last10):
-                    place_id, place = pair
-                    send_place_to_chat(place, message, num + 1)
-            else:
-                text = """
-                Список ваших мест пуст. Вы их можете начать добавлять с помощью команды /add
-                """
-            bot.send_message(message.chat.id, text=text)
+            text_by_success = "Ваши до 10 последних сохраненных мест:"
+            text_by_fail = "Список ваших мест пуст. Вы также можете начать добавлять места с помощью команды /add"
+            send_selected_places_to_chat(message, places_last10, text_by_success, text_by_fail)
 
     @bot.message_handler(content_types=["location"])
     def handle_location(message):
@@ -229,17 +233,10 @@ def main():
         my_location = message.location
         my_coords = (str(my_location.latitude), str(my_location.longitude))
         places_less500 = get_places_less500(my_coords, places)
-        if places_less500:
-            bot.send_message(message.chat.id, text="Ваши сохраненные места не далее 500м:")
-            for num, pair in enumerate(places_less500):
-                place_id, place = pair
-                send_place_to_chat(place, message, num+1)
-        else:
-            text = """
-    В радиусе 500м ваших сохраненных мест не обнаружено :(. 
-    Вы можете добавить новые места с помощью команды /add
-    """
-            bot.send_message(message.chat.id, text=text)
+        text_by_success = "Ваши сохраненные места не далее 500м:"
+        text_by_fail = "В радиусе 500м ваших сохраненных мест не обнаружено :(. Вы можете добавить новые места с " \
+                       "помощью команды /add "
+        send_selected_places_to_chat(message, places_less500, text_by_success, text_by_fail)
 
     @bot.message_handler(commands=["reset"])
     def handle_reset(message):
