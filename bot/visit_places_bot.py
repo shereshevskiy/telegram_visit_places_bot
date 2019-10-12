@@ -5,6 +5,8 @@ from collections import defaultdict
 import requests
 
 # abs path to project
+from telebot import types
+
 abs_path_to_runfile = os.path.dirname(os.path.abspath(__file__))
 project_abs_path = os.path.join(abs_path_to_runfile, "..")
 
@@ -97,13 +99,41 @@ def get_places_with_dists(my_coords, places_with_locs, api_key):
     return places_with_dists
 
 
-def send_place_to_chat(place):
-    pass  # TODO
+mark_less500 = "Места не далее 500м"
+mark_last10 = "Последние 10 мест"
+what_list_need = [mark_less500, mark_last10]
+
+def create_keyboard():
+    keyboard = types.InlineKeyboardMarkup(row_width=2)
+    buttons = [types.InlineKeyboardButton(text=item, callback_data=item) for item in what_list_need]
+    keyboard.add(*buttons)
+    return keyboard
 
 
 # bot
 def main():
     bot = telebot.TeleBot(token)
+
+    def get_photo(photo_id):
+        file_info = bot.get_file(photo_id)
+        photo = urllib.request.urlopen(f'https://api.telegram.org/file/bot{token}/{file_info.file_path}').read()
+        return photo
+
+    def send_place_to_chat(place, message, num):
+        text = f"""
+#{num}
+Название: {place["name"]}
+Адрес: {place["address"]}
+Расстояние до вас: {place["distance"]}м
+"""
+        if place["photo_id"]:
+            # send photo with text
+            photo = get_photo(place["photo_id"])
+            bot.send_photo(message.chat.id, photo, caption=text)
+        else:
+            # send message with text
+            text += "Фото: отсутствует"
+            bot.send_message(message.chat.id, text=text)
 
     @bot.message_handler(commands=["add"])
     def handle_add(message):
@@ -124,7 +154,7 @@ def main():
     def handle_address(message):
         # адрес
         update_place(message.chat.id, "address", message.text)
-        bot.send_message(message.chat.id, text="Загрузи фото")
+        bot.send_message(message.chat.id, text='Загрузи фото\n(отправь "нет" или любые символы, если фото нет)')
         update_state(message, PHOTO)
 
     @bot.message_handler(content_types=["photo"])
@@ -133,18 +163,13 @@ def main():
         # photo
         if message.photo:
             photo_id = message.photo[0].file_id
-            file_info = bot.get_file(photo_id)
-            # urllib.request.urlretrieve(f'https://api.telegram.org/file/bot{token}/{file_info.file_path}',
-            #                            os.path.join(photo_path, f"{photo_id}.jpg"))
-            photo = urllib.urlopen(f'https://api.telegram.org/file/bot{token}/{file_info.file_path}').read()
-            bot.send_photo(message.chat.id, photo, caption="Дублирую картинку обратно )")
-            photo_info = photo_id
         else:
-            photo_info = no_data_message
+            photo_id = None
 
-        update_place(message.chat.id, "photo", photo_info)
+        update_place(message.chat.id, "photo_id", photo_id)
         bot.send_message(message.chat.id,
-                         text="Загрузи координаты - широту, долготу (через запятую, без скобок)")
+                         text="Загрузи координаты - широту, долготу (через запятую, без скобок). \nПример: "
+                              "\n51.678727, 39.206864")
         update_state(message, COORDINATES)
 
     @bot.message_handler(func=lambda message: get_state(message) == COORDINATES)
@@ -162,16 +187,41 @@ def main():
     # list для мест в рабиусе 500м
     @bot.message_handler(commands=["list"])
     def handle_list(message):
-        if PLACES[message.chat.id] != defaultdict(lambda: defaultdict(lambda: no_data_message)):
-            text = """
-    Отправьте вашу локацию. Будут выведены все сохраненные места в радиусе 500м
-    """
-        else:
-            text = """
-    Список ваших мест пуст. 
-    Вы их можете начать добавлять с помощью команды /add
-    """
-        bot.send_message(message.chat.id, text=text)
+        keyboard = create_keyboard()
+        bot.send_message(chat_id=message.chat.id, text="Что бы вы хотели:", reply_markup=keyboard)
+
+    # обрабатываем кнопки
+    @bot.callback_query_handler(func=lambda x: True)
+    def callback_handler(callback_query):
+        message = callback_query.message
+        text = callback_query.data
+
+        if text == mark_less500:
+            if PLACES[message.chat.id] != defaultdict(lambda: defaultdict(lambda: no_data_message)):
+                text_to_chat = """
+                Отправьте вашу локацию. Будут выведены все сохраненные места в радиусе 500м
+                """
+            else:
+                text_to_chat = """
+                Список ваших мест пуст. Вы их можете начать добавлять с помощью команды /add
+                """
+            bot.send_message(message.chat.id, text=text_to_chat)
+
+        if text == mark_last10:
+            # последние 10 добавленных мест
+            places = PLACES[message.chat.id]
+            places_all = sorted(list(places.items()), key=lambda x: x[0], reverse=True)
+            places_last10 = places_all[:10]
+            if places_last10:
+                bot.send_message(message.chat.id, text="Ваши до 10 последних сохраненных мест:")
+                for num, pair in enumerate(places_last10):
+                    place_id, place = pair
+                    send_place_to_chat(place, message, num + 1)
+            else:
+                text = """
+                Список ваших мест пуст. Вы их можете начать добавлять с помощью команды /add
+                """
+            bot.send_message(message.chat.id, text=text)
 
     @bot.message_handler(content_types=["location"])
     def handle_location(message):
@@ -180,31 +230,16 @@ def main():
         my_coords = (str(my_location.latitude), str(my_location.longitude))
         places_less500 = get_places_less500(my_coords, places)
         if places_less500:
-            bot.send_message(message.chat.id, text="Ваши сохраненные места в не далее 500м:")
-            for place in places_less500:
-                send_place_to_chat(place)
+            bot.send_message(message.chat.id, text="Ваши сохраненные места не далее 500м:")
+            for num, pair in enumerate(places_less500):
+                place_id, place = pair
+                send_place_to_chat(place, message, num+1)
         else:
             text = """
     В радиусе 500м ваших сохраненных мест не обнаружено :(. 
     Вы можете добавить новые места с помощью команды /add
     """
             bot.send_message(message.chat.id, text=text)
-
-    # # list для последних 10 добавленных мест
-    # @bot.message_handler(commands=["list"])
-    # def handle_list(message):
-    #     # последние 10 добавленных мест
-    #     places = PLACES[message.chat.id]
-    #     places_all = sorted(list(places.items()), key=lambda x: x[0], reverse=True)
-    #     places_last10 = places_all[:10]
-    #     if places_last10 != []:
-    #         text = f"{places_last10}"
-    #     else:
-    #         text = """
-    # Список ваших мест пуст.
-    # Вы их можете начать добавлять с помощью команды /add
-    # """
-    #     bot.send_message(message.chat.id, text=text)
 
     @bot.message_handler(commands=["reset"])
     def handle_reset(message):
