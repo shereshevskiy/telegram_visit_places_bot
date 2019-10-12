@@ -1,6 +1,6 @@
-#numpy
-#pandas
+# numpy
+# pandas
 requests
 pyTelegramBotAPI
-#jupyterlab  # for developing only, not for prod
-#jupyter  # for developing only, not for prod
+# jupyterlab  # for developing only, not for prod
+# jupyter  # for developing only, not for prod

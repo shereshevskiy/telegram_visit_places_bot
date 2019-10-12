@@ -15,7 +15,6 @@ my_api_key = "AIzaSyB5N7lIE2T6a3hrUFm9dYvwqTaa1mMVC_c"
 no_data_message = "Нет данных"
 
 
-
 START, NAME, ADDRESS, PHOTO, COORDINATES = range(5)
 USER_STATE = defaultdict(lambda: START)
 
@@ -135,8 +134,10 @@ def main():
         if message.photo:
             photo_id = message.photo[0].file_id
             file_info = bot.get_file(photo_id)
-            urllib.request.urlretrieve(f'https://api.telegram.org/file/bot{token}/{file_info.file_path}',
-                                       os.path.join(photo_path, f"{photo_id}.jpg"))
+            # urllib.request.urlretrieve(f'https://api.telegram.org/file/bot{token}/{file_info.file_path}',
+            #                            os.path.join(photo_path, f"{photo_id}.jpg"))
+            photo = urllib.urlopen(f'https://api.telegram.org/file/bot{token}/{file_info.file_path}').read()
+            bot.send_photo(message.chat.id, photo, caption="Дублирую картинку обратно )")
             photo_info = photo_id
         else:
             photo_info = no_data_message
