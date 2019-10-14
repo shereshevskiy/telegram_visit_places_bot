@@ -8,7 +8,7 @@ def get_connect(local_db=False):
     """
     Connect to PostgreSQL db, heroku or local, depending from local_db (False or True)
 
-    :param local_db: bool, default is True. Whether will be the connect to test database or real database
+    :param local_db: bool, default is True. Whether will be the connect to test db or real db
     :return:
     """
     path_to_connect_config = os.path.dirname(os.path.abspath(__file__))
@@ -16,7 +16,7 @@ def get_connect(local_db=False):
     config.read(os.path.join(path_to_connect_config, 'connect.cfg'))
     db_type = "LOCAL" if local_db else "HEROKU"
 
-    print(f"Connecting to {db_type} PostgeSQL database...")
+    print(f"Connecting to {db_type} PostgeSQL db...")
     try:
         connect = psycopg2.connect(**config[db_type])
         print("Connection established.")
