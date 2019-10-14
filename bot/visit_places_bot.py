@@ -6,9 +6,9 @@ import requests
 
 from telebot import types
 
-# abs path to project
 from db.postgresql_query import PostgresqlQuery
 
+# abs path to project
 abs_path_to_runfile = os.path.dirname(os.path.abspath(__file__))
 project_abs_path = os.path.join(abs_path_to_runfile, "..")
 
