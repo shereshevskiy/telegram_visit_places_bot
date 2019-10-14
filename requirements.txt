@@ -1,6 +1,6 @@
 psycopg2-binary
-# numpy
-# pandas
+numpy
+pandas
 requests
 pyTelegramBotAPI
 # jupyterlab  # for developing only, not for prod

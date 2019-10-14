@@ -4,7 +4,7 @@ import configparser
 import os
 
 
-def connect_to_db(local_db=False):
+def get_connect(local_db=False):
     """
     Connect to PostgreSQL db, heroku or local, depending from local_db (False or True)
 
@@ -27,14 +27,14 @@ def connect_to_db(local_db=False):
 
 
 if __name__ == '__main__':
-    conn = None
+    connect = None
     try:
-        conn = connect_to_db()
+        connect = get_connect()
     except Error as e:
         print("ERROR:", e)
     finally:
-        if conn:
-            conn.close()
+        if connect:
+            connect.close()
             print("Same connection test is OK")
             print("Connection closed")
         else:
