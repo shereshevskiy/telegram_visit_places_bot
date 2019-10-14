@@ -1,7 +1,6 @@
-import pandas as pd
 from psycopg2 import Error
 
-from connect.connect import get_connect
+from db.connect import get_connect
 
 
 class PostgresqlQuery:
@@ -19,6 +18,22 @@ class PostgresqlQuery:
         self.local_db = local_db
 
     def query(self, query_text, query_params=None):
+        connect = None
+        try:
+            connect = get_connect(self.local_db)
+            cursor = connect.cursor()
+            cursor.execute(query_text, query_params)
+
+        except Error as e:
+            print("ERROR:", e)
+        finally:
+            if connect:
+                connect.close()
+                print("Connection closed")
+            else:
+                print("NOTE: The connection not happened")
+
+    def query_fetchall(self, query_text, query_params=None):
         connect = None
         try:
             connect = get_connect(self.local_db)
