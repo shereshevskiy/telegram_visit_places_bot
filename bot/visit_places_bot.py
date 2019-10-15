@@ -23,7 +23,8 @@ no_data_message = "нет данных"
 START, NAME, ADDRESS, PHOTO, COORDINATES = range(5)
 USER_STATE = defaultdict(lambda: START)
 
-PLACE = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: None)))
+PLACE = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: None)))  # keys are without place_id. user_id and
+# the place features only
 place_ids = defaultdict(lambda: 0)
 
 
@@ -136,6 +137,7 @@ def main():
 
     def send_place_to_chat(place_id, dist, message, num):
         psql_query = PostgresqlQuery()
+        print("place_id", place_id)
         row = psql_query.query_fetchall(f"SELECT name, address, photo_id FROM places WHERE id = '{place_id}'")[0]
         name = row[0]
         address = row[1]
@@ -242,8 +244,8 @@ def main():
 
         if text == mark_last10:
             # последние 10 добавленных мест
-            places = PLACE[message.chat.id]
-            places_all = sorted(list(places.items()), key=lambda x: x[0], reverse=True)
+            places = PLACE[message.chat.id]  # FIXME check and fix
+            places_all = sorted(list(places.items()), key=lambda x: x[0], reverse=True)  # FIXME
             places_last10 = places_all[:10]
             text_by_success = "Ваши до 10 последних сохраненных мест:"
             text_by_fail = "Список ваших мест пуст. Вы также можете начать добавлять места с помощью команды /add"

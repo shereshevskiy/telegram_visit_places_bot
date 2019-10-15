@@ -64,7 +64,7 @@ class PostgresqlQuery:
 if __name__ == '__main__':
     print("Some test for the method .query():")
     psql_query = PostgresqlQuery()
-    # запрос на просмотра списка таблиц в базе данных
+    # the query to see the tables list from db
     query_text = """SELECT table_name FROM information_schema.tables
                     WHERE table_schema NOT IN ('information_schema','pg_catalog');"""
     print(psql_query.query(query_text, fetchall=True))
