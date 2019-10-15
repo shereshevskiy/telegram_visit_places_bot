@@ -4,11 +4,9 @@ import os
 from collections import defaultdict
 import requests
 
+# abs path to project
 from telebot import types
 
-from db.postgresql_query import PostgresqlQuery
-
-# abs path to project
 abs_path_to_runfile = os.path.dirname(os.path.abspath(__file__))
 project_abs_path = os.path.join(abs_path_to_runfile, "..")
 
@@ -23,7 +21,7 @@ no_data_message = "нет данных"
 START, NAME, ADDRESS, PHOTO, COORDINATES = range(5)
 USER_STATE = defaultdict(lambda: START)
 
-PLACE = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: None)))
+PLACES = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: no_data_message)))
 place_ids = defaultdict(lambda: 0)
 
 
@@ -37,35 +35,43 @@ def update_state(message, state):
 
 
 def update_place(user_id, key, value):
-    PLACE[user_id][key] = value
+    PLACES[user_id][place_ids[user_id]][key] = value
 
 
-def reset_place(user_id):
-    PLACE[user_id] = defaultdict(lambda: defaultdict(lambda: None))
+def update_place_id(user_id):
+    place_ids[user_id] += 1
 
 
-def get_places_less500(my_coords, user_id):
-    places_with_locs = get_places_with_locs(user_id)
+def reset_places(user_id):
+    PLACES[user_id] = defaultdict(lambda: defaultdict(lambda: no_data_message))
+    place_ids[user_id] = 0
+
+
+def get_places_less500(my_coords, places):
+    places_with_locs = get_places_with_locs(places)
     if not places_with_locs:
         return []
 
     places_with_dists = get_places_with_dists(my_coords, places_with_locs, my_api_key)
-    places_less500 = [place for place in places_with_dists if place[1] <= 500]
-    places_less500 = sorted(places_less500, key=lambda x: x[1])
+    places_less500_draft = [place for place in places_with_dists if place[1] <= 500]
+    places_less500_draft = sorted(places_less500_draft, key=lambda x: x[1])
 
+    def get_place_info(place_id, dist, used_places):
+        place_info = used_places[place_id]
+        place_info['distance'] = dist
+        return place_info
+
+    places_less500 = [
+        (place_id, get_place_info(place_id, dist, places))
+        for place_id, dist in places_less500_draft
+    ]
     return places_less500
 
 
-def get_places_with_locs(user_id):
-    psql_query = PostgresqlQuery()
-    cols = ["id", "lat", "lon"]
-    cols_join = ', '.join(cols)
-    query_text = f"SELECT {cols_join} FROM places WHERE user_id = '%s' ORDER BY id DESC"
-    query_params = (user_id,)
-    rows = psql_query.query(query_text, query_params, fetchall=True)
+def get_places_with_locs(places):
     places_with_locs = [
-        [place_id, (lat, lon)]
-        for place_id, lat, lon in rows if (bool(lat) and bool(lat))
+        [place_id, value["coordinates"]]
+        for place_id, value in places.items() if value["coordinates"] != no_data_message
     ]
     return places_with_locs
 
@@ -88,9 +94,9 @@ def get_places_with_dists(my_coords, places_with_locs, api_key):
     rows = info['rows']
     distances = map(lambda x: x.get("distance", {}).get("value", float("inf")), rows[0]['elements'])
     # distances = map(lambda x: x["distance"]["value"], rows[0]['elements'])
-    dist_place_ids = map(lambda x: x[0], places_with_locs)
+    place_ids = map(lambda x: x[0], places_with_locs)
 
-    places_with_dists = zip(dist_place_ids, distances)
+    places_with_dists = zip(place_ids, distances)
     return places_with_dists
 
 
@@ -106,25 +112,6 @@ def create_keyboard():
     return keyboard
 
 
-def place_to_db(user_id):
-    psql_query = PostgresqlQuery()
-    values = (
-        user_id,
-        PLACE[user_id]["name"],
-        PLACE[user_id]["address"],
-        PLACE[user_id]["photo_id"],
-        PLACE[user_id]["lat"],
-        PLACE[user_id]["lon"]
-    )
-    psql_query.query_insert(values)
-
-
-def reset_places(user_id):
-    psql_query = PostgresqlQuery()
-    query_text = f"DELETE FROM places as p WHERE p.user_id = '{user_id}';"
-    psql_query.query(query_text, commit=True)
-
-
 # bot
 def main():
     bot = telebot.TeleBot(token)
@@ -134,22 +121,16 @@ def main():
         photo = urllib.request.urlopen(f'https://api.telegram.org/file/bot{token}/{file_info.file_path}').read()
         return photo
 
-    def send_place_to_chat(place_id, dist, message, num):
-        psql_query = PostgresqlQuery()
-        row = psql_query.query_fetchall(f"SELECT name, address, photo_id FROM places WHERE id = '{place_id}'")[0]
-        name = row[0]
-        address = row[1]
-        photo_id = row[2]
-
+    def send_place_to_chat(place, message, num):
         text = f"""
 #{num}
-Название: {name}
-Адрес: {address}
-Расстояние до вас (м): {dist}
+Название: {place["name"]}
+Адрес: {place["address"]}
+Расстояние до вас (м): {place["distance"]}
 """
-        if photo_id:
+        if place["photo_id"]:
             # send photo with text
-            photo = get_photo(photo_id)
+            photo = get_photo(place["photo_id"])
             bot.send_photo(message.chat.id, photo, caption=text)
         else:
             # send message with text
@@ -160,15 +141,15 @@ def main():
         if selected_places:
             bot.send_message(message.chat.id, text=text_by_success)
             for num, pair in enumerate(selected_places):
-                place_id, dist = pair
-                send_place_to_chat(place_id, dist, message, num + 1)
+                place_id, place = pair
+                send_place_to_chat(place, message, num + 1)
         else:
             text = text_by_fail
             bot.send_message(message.chat.id, text=text)
 
     @bot.message_handler(commands=["add"])
     def handle_add(message):
-        reset_place(message.chat.id)
+        update_place_id(message.chat.id)
 
         bot.send_message(message.chat.id, text="Напиши название")
         update_state(message, NAME)
@@ -210,10 +191,8 @@ def main():
         try:
             coord = [str(float(coord.strip())) for coord in text.split(",")]
         except ValueError:
-            coord = [None, None]
-        update_place(message.chat.id, "lat", coord[0])
-        update_place(message.chat.id, "lon", coord[1])
-        place_to_db(message.chat.id)
+            coord = no_data_message
+        update_place(message.chat.id, "coordinates", coord)
         bot.send_message(message.chat.id, text="Место сохранено :)")
         update_state(message, START)
 
@@ -230,7 +209,7 @@ def main():
         text = callback_query.data
 
         if text == mark_less500:
-            if PLACE[message.chat.id] != defaultdict(lambda: defaultdict(lambda: no_data_message)):
+            if PLACES[message.chat.id] != defaultdict(lambda: defaultdict(lambda: no_data_message)):
                 text_to_chat = """
                 Отправьте вашу локацию. Будут выведены все сохраненные места в радиусе 500м
                 """
@@ -242,7 +221,7 @@ def main():
 
         if text == mark_last10:
             # последние 10 добавленных мест
-            places = PLACE[message.chat.id]
+            places = PLACES[message.chat.id]
             places_all = sorted(list(places.items()), key=lambda x: x[0], reverse=True)
             places_last10 = places_all[:10]
             text_by_success = "Ваши до 10 последних сохраненных мест:"
@@ -251,9 +230,10 @@ def main():
 
     @bot.message_handler(content_types=["location"])
     def handle_location(message):
+        places = PLACES[message.chat.id]
         my_location = message.location
         my_coords = (str(my_location.latitude), str(my_location.longitude))
-        places_less500 = get_places_less500(my_coords, message.chat.id)
+        places_less500 = get_places_less500(my_coords, places)
         text_by_success = "Ваши сохраненные места не далее 500м:"
         text_by_fail = "В радиусе 500м ваших сохраненных мест не обнаружено :(. Вы можете добавить новые места с " \
                        "помощью команды /add "
