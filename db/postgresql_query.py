@@ -4,7 +4,7 @@ from psycopg2.extras import DictCursor
 from db.connect import get_connect
 
 
-class PostgresqlQuery:
+class DataBase:
 
     def __init__(self, cols=("id", "user_id", "name", "address", "photo_id", "lat", "lon"),
                  table="places", local_db=False):
@@ -63,7 +63,7 @@ class PostgresqlQuery:
 
 if __name__ == '__main__':
     print("Some test for the method .query():")
-    psql_query = PostgresqlQuery()
+    psql_query = DataBase()
     # the query to see the tables list from db
     query_text = """SELECT table_name FROM information_schema.tables
                     WHERE table_schema NOT IN ('information_schema','pg_catalog');"""
