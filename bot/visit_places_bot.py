@@ -234,25 +234,25 @@ def my_bot():
             keyboard = create_keyboard()
             bot.send_message(chat_id=message.chat.id, text="Что бы вы хотели:", reply_markup=keyboard)
         else:
-            text_to_chat = """
+            text = """
                 Список ваших мест пуст. Вы можете начать их добавлять с помощью команды /add
                 """
-            bot.send_message(message.chat.id, text=text_to_chat)
+            bot.send_message(message.chat.id, text=text)
 
     # обрабатываем кнопки
     @bot.callback_query_handler(func=lambda x: True)
     def callback_handler(callback_query):
         message = callback_query.message
         user_id = message.chat.id
-        text = callback_query.data
+        callback_text = callback_query.data
 
-        if text == mark_less500:
-            text_to_chat = """
+        if callback_text == mark_less500:
+            text = """
             Отправьте вашу локацию. Будут выведены все сохраненные места в радиусе 500м
             """
-            bot.send_message(message.chat.id, text=text_to_chat)
+            bot.send_message(message.chat.id, text=text)
 
-        if text == mark_last10:
+        if callback_text == mark_last10:
             # последние 10 добавленных мест
             cols = ['name', 'address', 'photo_id']
             cols_join = ", ".join(cols)
@@ -295,6 +295,14 @@ def my_bot():
 /add – добавление нового места
 /list – отображение добавленных мест в радиусе 500м от вашей локации
 /reset – удаление всех ваших добавленных локаций
+"""
+        bot.send_message(message.chat.id, text=text)
+
+    @bot.message_handler()
+    def handle_list(message):
+        text = """
+Привет! Я Бот, который поможет тебе сохранить места для будущего посещения.
+Воспользуйся командой /help, чтобы узнать все доступные команды.
 """
         bot.send_message(message.chat.id, text=text)
 
