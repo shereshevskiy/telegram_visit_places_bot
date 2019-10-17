@@ -150,7 +150,7 @@ def my_bot():
 Адрес: {address}
 """
         if dist != no_data_message:
-            text += f"Расстояние до вас (м): {dist}"
+            text += f"Расстояние до вас (м): {dist}\n"
 
         if photo_id:
             # send photo with text
@@ -159,7 +159,7 @@ def my_bot():
                 bot.send_photo(message.chat.id, photo, caption=text)
             else:
                 # send message with text
-                text += "\nФото: отсутствует"
+                text += "Фото: отсутствует"
                 bot.send_message(message.chat.id, text=text)
         else:
             # send message with text
@@ -235,7 +235,7 @@ def my_bot():
             bot.send_message(chat_id=message.chat.id, text="Что бы вы хотели:", reply_markup=keyboard)
         else:
             text_to_chat = """
-                Список ваших мест пуст. Вы их можете начать добавлять с помощью команды /add
+                Список ваших мест пуст. Вы можете начать их добавлять с помощью команды /add
                 """
             bot.send_message(message.chat.id, text=text_to_chat)
 
