@@ -16,3 +16,5 @@
 - **/reset** - бот удаляет все сохранённые данные для данного пользователя
 
 Для помощи введите команду **/help**
+
+Описание задачи с комментариями также здесь https://www.coursera.org/learn/python-for-web/peer/0UGyj/sozdaniie-telegram-bota
