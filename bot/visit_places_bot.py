@@ -19,8 +19,8 @@ project_abs_path = os.path.join(abs_path_to_runfile, "..")
 # initialization
 config = configparser.ConfigParser()
 config.read(os.path.join(project_abs_path, 'config.cfg'))
-token = config["dsher_test"]['telebot_token']
-api_key = config["dsher_test"]['google_api_key']
+token = config["visited_places_bot"]['telebot_token']
+api_key = config["visited_places_bot"]['google_api_key']
 
 no_data_message = "нет данных"
 
@@ -295,6 +295,9 @@ def my_bot():
 /add – добавление нового места
 /list – отображение добавленных мест в радиусе 500м от вашей локации
 /reset – удаление всех ваших добавленных локаций
+
+/start - начало общения с ботом
+/help - помощь
 """
         bot.send_message(message.chat.id, text=text)
 
