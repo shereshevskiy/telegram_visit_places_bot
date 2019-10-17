@@ -282,21 +282,20 @@ def my_bot():
         bot.send_message(message.chat.id, text="Все ваши сохраненные места удалены")
 
     @bot.message_handler(commands=["start"])
-    @bot.message_handler()
     def handle_list(message):
         text = """
-    Привет! Я Бот, который поможет тебе сохранить места для будущего посещения. 
-    Воспользуйся командой /help, чтобы узнать все доступные команды.
-    """
+Привет! Я Бот, который поможет тебе сохранить места для будущего посещения.
+Воспользуйся командой /help, чтобы узнать все доступные команды.
+"""
         bot.send_message(message.chat.id, text=text)
 
     @bot.message_handler(commands=["help"])
     def handle_list(message):
         text = """
-    /add – добавление нового места
-    /list – отображение добавленных мест в радиусе 500м от вашей локации
-    /reset – удаление всех ваших добавленных локаций
-    """
+/add – добавление нового места
+/list – отображение добавленных мест в радиусе 500м от вашей локации
+/reset – удаление всех ваших добавленных локаций
+"""
         bot.send_message(message.chat.id, text=text)
 
     bot.polling()
