@@ -1,5 +1,4 @@
 from psycopg2 import Error
-from psycopg2.extras import DictCursor
 
 from db.connect import get_connect
 
@@ -19,15 +18,12 @@ class DataBase:
         self.table = table
         self.local_db = local_db
 
-    def query(self, text, query_params=None, commit=False, fetchall=False, dict_cursor=False):
+    def query(self, text, query_params=None, commit=False, fetchall=False):
         connect = None
         rows = None
-        cursor_factory = None
         try:
             connect = get_connect(self.local_db)
-            if dict_cursor:
-                cursor_factory = DictCursor
-            cursor = connect.cursor(cursor_factory=cursor_factory)
+            cursor = connect.cursor()
             cursor.execute(text, query_params)
             if commit:
                 connect.commit()

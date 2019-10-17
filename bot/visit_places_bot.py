@@ -1,3 +1,5 @@
+import configparser
+
 import pandas as pd
 import telebot
 import urllib
@@ -15,10 +17,11 @@ abs_path_to_runfile = os.path.dirname(os.path.abspath(__file__))
 project_abs_path = os.path.join(abs_path_to_runfile, "..")
 
 # initialization
-# token = "782566416:AAH4wVArtMwhbDa7_qHNyPY7NdoD8sxMkow"  # @visited_places_bot
-token = "780799099:AAGGjJfeKRiXX7D34_ZrW19n_zxOFcZbs70"  # @dsher_test_bot
-photo_path = os.path.join(project_abs_path, "photos")
-my_api_key = "AIzaSyB5N7lIE2T6a3hrUFm9dYvwqTaa1mMVC_c"
+config = configparser.ConfigParser()
+config.read(os.path.join(project_abs_path, 'config.cfg'))
+token = config["dsher_test"]['telebot_token']
+api_key = config["dsher_test"]['google_api_key']
+
 no_data_message = "нет данных"
 
 START, NAME, ADDRESS, PHOTO, COORDINATES = range(5)
@@ -27,7 +30,6 @@ USER_STATE = defaultdict(lambda: START)
 PLACE = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: None)))  # keys are without place_id. user_id and
 # the place features only
 place_ids = defaultdict(lambda: 0)
-
 data_base = DataBase()
 
 
@@ -49,27 +51,29 @@ def reset_place(user_id):
 
 
 def get_places_less500(user_id, my_coords):
-    places_with_locs = get_places_with_locs(user_id)   # df
+    places_with_locs = get_places_from_db(user_id)   # df
     if places_with_locs.empty:
         return places_with_locs
 
-    places_less500 = get_places_with_dists(my_coords, places_with_locs, my_api_key)
+    places_less500 = get_places_with_dists(my_coords, places_with_locs)
 
     return places_less500
 
 
-def get_places_with_locs(user_id):
+def get_places_from_db(user_id, limit=None):
     cols = ['name', 'address', 'photo_id', "lat", "lon"]
     cols_join = ", ".join(cols)
     query_text = f"""
                     SELECT {cols_join} FROM places WHERE user_id = '{user_id}'
                   """
+    if limit is not None:
+        query_text += f"LIMIT {limit}"
     rows = data_base.query_fetchall(query_text)
     places_with_locs = pd.DataFrame(rows, columns=cols)
     return places_with_locs
 
 
-def get_places_with_dists(my_coords, places_with_locs, api_key):
+def get_places_with_dists(my_coords, places_with_locs):
     """
     my_location: (lat, lon)
     places_with_locs: [[place_id, (lat, lon)], ...]
@@ -88,17 +92,18 @@ def get_places_with_dists(my_coords, places_with_locs, api_key):
     rows = info['rows']
     distances = list(map(lambda x: x.get("distance", {}).get("value", float("inf")), rows[0]['elements']))
     places_with_locs["dist"] = distances
-    return places_with_locs[places_with_locs.dist <= 500].sort_values("dist").reset_index()
+    return places_with_locs[places_with_locs.dist <= 500].sort_values("dist")
 
 
+# initialization for keyboard
 mark_less500 = "Места не далее 500м"
 mark_last10 = "Последние 10 мест"
-what_list_need = [mark_less500, mark_last10]
+buttons_list = [mark_less500, mark_last10]
 
 
 def create_keyboard():
     keyboard = types.InlineKeyboardMarkup(row_width=2)
-    buttons = [types.InlineKeyboardButton(text=item, callback_data=item) for item in what_list_need]
+    buttons = [types.InlineKeyboardButton(text=item, callback_data=item) for item in buttons_list]
     keyboard.add(*buttons)
     return keyboard
 
@@ -117,9 +122,8 @@ def place_to_db(user_id):
 
 
 def reset_places(user_id):
-    psql_query = DataBase()
-    query_text = f"DELETE FROM places as p WHERE p.user_id = '{user_id}';"
-    psql_query.query(query_text, commit=True)
+    query_text = f"DELETE FROM places WHERE user_id = '{user_id}'"
+    data_base.query(query_text, commit=True)
 
 
 # bot
@@ -144,8 +148,10 @@ def my_bot():
 #{num}
 Название: {name}
 Адрес: {address}
-Расстояние до вас (м): {dist}
 """
+        if dist != no_data_message:
+            text += f"Расстояние до вас (м): {dist}"
+
         if photo_id:
             # send photo with text
             photo = get_photo(photo_id)
@@ -153,7 +159,7 @@ def my_bot():
                 bot.send_photo(message.chat.id, photo, caption=text)
             else:
                 # send message with text
-                text += "Фото: отсутствует"
+                text += "\nФото: отсутствует"
                 bot.send_message(message.chat.id, text=text)
         else:
             # send message with text
@@ -163,8 +169,8 @@ def my_bot():
     def send_selected_places_to_chat(message, selected_places, text_by_success, text_by_fail):
         if not selected_places.empty:
             bot.send_message(message.chat.id, text=text_by_success)
-            for index, row in selected_places.reset_index().fillna(no_data_message).iterrows():
-                send_place_to_chat(message, row, index + 1)
+            for num, (index, row) in enumerate(selected_places.fillna(no_data_message).iterrows()):
+                send_place_to_chat(message, row, num + 1)
         else:
             text = text_by_fail
             bot.send_message(message.chat.id, text=text)
@@ -211,11 +217,11 @@ def my_bot():
         # coordinates
         text = message.text
         try:
-            coord = [str(float(coord.strip())) for coord in text.split(",")]
+            coords = [str(float(coord.strip())) for coord in text.split(",")]
         except ValueError:
-            coord = [None, None]
-        update_place(message.chat.id, "lat", coord[0])
-        update_place(message.chat.id, "lon", coord[1])
+            coords = [None, None]
+        update_place(message.chat.id, "lat", coords[0])
+        update_place(message.chat.id, "lon", coords[1])
         place_to_db(message.chat.id)
         bot.send_message(message.chat.id, text="Место сохранено :)")
         update_state(message, START)
@@ -223,8 +229,15 @@ def my_bot():
     # list для мест в рабиусе 500м
     @bot.message_handler(commands=["list"])
     def handle_list(message):
-        keyboard = create_keyboard()
-        bot.send_message(chat_id=message.chat.id, text="Что бы вы хотели:", reply_markup=keyboard)
+        places_one_row = get_places_from_db(message.chat.id, limit=1)
+        if not places_one_row.empty:
+            keyboard = create_keyboard()
+            bot.send_message(chat_id=message.chat.id, text="Что бы вы хотели:", reply_markup=keyboard)
+        else:
+            text_to_chat = """
+                Список ваших мест пуст. Вы их можете начать добавлять с помощью команды /add
+                """
+            bot.send_message(message.chat.id, text=text_to_chat)
 
     # обрабатываем кнопки
     @bot.callback_query_handler(func=lambda x: True)
@@ -234,15 +247,9 @@ def my_bot():
         text = callback_query.data
 
         if text == mark_less500:
-            places_with_locs = get_places_with_locs(user_id)
-            if not places_with_locs.empty:
-                text_to_chat = """
-                Отправьте вашу локацию. Будут выведены все сохраненные места в радиусе 500м
-                """
-            else:
-                text_to_chat = """
-                Список ваших мест пуст. Вы их можете начать добавлять с помощью команды /add
-                """
+            text_to_chat = """
+            Отправьте вашу локацию. Будут выведены все сохраненные места в радиусе 500м
+            """
             bot.send_message(message.chat.id, text=text_to_chat)
 
         if text == mark_last10:
