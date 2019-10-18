@@ -11,10 +11,9 @@ abs_path_to_runfile = os.path.dirname(os.path.abspath(__file__))
 project_abs_path = os.path.join(abs_path_to_runfile, "..")
 
 # initialization
-# token = "782566416:AAH4wVArtMwhbDa7_qHNyPY7NdoD8sxMkow"  # @visited_places_bot
-token = "780799099:AAGGjJfeKRiXX7D34_ZrW19n_zxOFcZbs70"  # @dsher_test_bot
+token = None  # use your token
 photo_path = os.path.join(project_abs_path, "photos")
-my_api_key = "AIzaSyB5N7lIE2T6a3hrUFm9dYvwqTaa1mMVC_c"
+my_api_key = None  # use your key
 no_data_message = "нет данных"
 
 
