@@ -64,11 +64,13 @@ def get_places_from_db(user_id, limit=None):
     cols = ['name', 'address', 'photo_id', "lat", "lon"]
     cols_join = ", ".join(cols)
     query_text = f"""
-                    SELECT {cols_join} FROM places WHERE user_id = '{user_id}'
+                    SELECT {cols_join} FROM places WHERE user_id = %s
                   """
+    query_params = (user_id,)
     if limit is not None:
-        query_text += f"LIMIT {limit}"
-    rows = data_base.query_fetchall(query_text)
+        query_text += f"LIMIT %s"
+        query_params = (user_id, limit)
+    rows = data_base.query_fetchall(query_text, query_params)
     places_with_locs = pd.DataFrame(rows, columns=cols)
     return places_with_locs
 
@@ -122,8 +124,9 @@ def place_to_db(user_id):
 
 
 def reset_places(user_id):
-    query_text = f"DELETE FROM places WHERE user_id = '{user_id}'"
-    data_base.query(query_text, commit=True)
+    query_text = f"DELETE FROM places WHERE user_id = %s"
+    query_params = (user_id,)
+    data_base.query(query_text, query_params, commit=True)
 
 
 # bot
@@ -260,9 +263,10 @@ def my_bot():
             cols = ['name', 'address', 'photo_id']
             cols_join = ", ".join(cols)
             query_text = f"""
-                SELECT {cols_join} FROM places WHERE user_id = '{user_id}' ORDER BY id DESC LIMIT 10
+                SELECT {cols_join} FROM places WHERE user_id = %s ORDER BY id DESC LIMIT 10
             """
-            rows = data_base.query_fetchall(query_text)
+            query_params = (user_id,)
+            rows = data_base.query_fetchall(query_text, query_params)
             places_last10 = pd.DataFrame(rows, columns=cols)
             places_last10["dist"] = None
             text_by_success = "Ваши до 10 последних сохраненных мест:"
