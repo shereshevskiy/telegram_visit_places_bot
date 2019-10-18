@@ -69,7 +69,7 @@ def get_places_from_db(user_id, limit=None):
     query_params = (user_id,)
     if limit is not None:
         query_text += f"LIMIT %s"
-        query_params = (user_id, limit)
+        query_params = (user_id, str(limit))
     rows = data_base.query_fetchall(query_text, query_params)
     places_with_locs = pd.DataFrame(rows, columns=cols)
     return places_with_locs
