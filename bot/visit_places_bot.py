@@ -68,9 +68,8 @@ def get_places_from_db(user_id, limit=None):
                   """
     query_params = (str(user_id),)
     if limit is not None:
-        query_text += f"LIMIT {limit}"
-        # query_text += f"LIMIT %s"
-        # query_params = (user_id, limit)
+        query_text += f"LIMIT %s"
+        query_params = (str(user_id), str(limit))
     rows = data_base.query_fetchall(query_text, query_params)
     places_with_locs = pd.DataFrame(rows, columns=cols)
     return places_with_locs
@@ -126,7 +125,7 @@ def place_to_db(user_id):
 
 def reset_places(user_id):
     query_text = f"DELETE FROM places WHERE user_id = %s"
-    query_params = (user_id,)
+    query_params = (str(user_id),)
     data_base.query(query_text, query_params, commit=True)
 
 
@@ -266,7 +265,7 @@ def my_bot():
             query_text = f"""
                 SELECT {cols_join} FROM places WHERE user_id = %s ORDER BY id DESC LIMIT 10
             """
-            query_params = (user_id,)
+            query_params = (str(user_id),)
             rows = data_base.query_fetchall(query_text, query_params)
             places_last10 = pd.DataFrame(rows, columns=cols)
             places_last10["dist"] = None
