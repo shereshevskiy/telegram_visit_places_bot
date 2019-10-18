@@ -68,8 +68,9 @@ def get_places_from_db(user_id, limit=None):
                   """
     query_params = (user_id,)
     if limit is not None:
-        query_text += f"LIMIT %s"
-        query_params = (user_id, limit)
+        query_text += f"LIMIT {limit}"
+        # query_text += f"LIMIT %s"
+        # query_params = (user_id, limit)
     rows = data_base.query_fetchall(query_text, query_params)
     places_with_locs = pd.DataFrame(rows, columns=cols)
     return places_with_locs
@@ -232,7 +233,7 @@ def my_bot():
         bot.send_message(message.chat.id, text="Место сохранено :)")
         update_state(message, START)
 
-    # list для мест в рабиусе 500м
+    # list
     @bot.message_handler(commands=["list"])
     def handle_list(message):
         places_one_row = get_places_from_db(message.chat.id, limit=1)
