@@ -66,7 +66,7 @@ def get_places_from_db(user_id, limit=None):
     query_text = f"""
                     SELECT {cols_join} FROM places WHERE user_id = %s
                   """
-    query_params = (user_id,)
+    query_params = (str(user_id),)
     if limit is not None:
         query_text += f"LIMIT {limit}"
         # query_text += f"LIMIT %s"
