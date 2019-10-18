@@ -220,6 +220,9 @@ def my_bot():
             coords = [str(float(coord.strip())) for coord in text.split(",")]
         except ValueError:
             coords = [None, None]
+        if len(coords) < 2:
+            coords = [None, None]  # fixed bug if len(coords) = 1
+
         update_place(message.chat.id, "lat", coords[0])
         update_place(message.chat.id, "lon", coords[1])
         place_to_db(message.chat.id)
