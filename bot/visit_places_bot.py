@@ -155,6 +155,7 @@ def my_bot():
         if dist != no_data_message:
             text += f"Расстояние до вас (м): {dist}\n"
 
+        # TODO переделать эту конструкцию
         if photo_id:
             # send photo with text
             photo = get_photo(photo_id)
@@ -215,16 +216,20 @@ def my_bot():
                               "\n51.678727, 39.206864")
         update_state(message, COORDINATES)
 
+    # @bot.message_handler(content_types=["location"])
     @bot.message_handler(func=lambda message: get_state(message) == COORDINATES)
     def handle_coordinates(message):
-        # coordinates
-        text = message.text
-        try:
-            coords = [str(float(coord.strip())) for coord in text.split(",")]
-        except ValueError:
-            coords = [None, None]
-        if len(coords) < 2:
-            coords = [None, None]  # fixed bug if len(coords) = 1
+        if message.location is not None:
+            coords = [message.location.latitude, message.location.longitude]
+        else:
+            # coordinates from text
+            text = message.text
+            try:
+                coords = [str(float(coord.strip())) for coord in text.split(",")]
+            except ValueError:
+                coords = [None, None]
+            if len(coords) < 2:
+                coords = [None, None]  # fixed bug if len(coords) = 1
 
         update_place(message.chat.id, "lat", coords[0])
         update_place(message.chat.id, "lon", coords[1])
