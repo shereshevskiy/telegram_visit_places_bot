@@ -217,7 +217,7 @@ def my_bot():
         update_state(message, COORDINATES)
 
     @bot.message_handler(func=lambda message: get_state(message) == COORDINATES)
-    @bot.message_handler(content_types=["location"])
+    # @bot.message_handler(content_types=["location"])
     def handle_coordinates(message):
         if message.location is not None:
             coords = [str(message.location.latitude), str(message.location.longitude)]
