@@ -212,14 +212,12 @@ def my_bot():
 
         update_place(message.chat.id, "photo_id", photo_id)
         bot.send_message(message.chat.id,
-                         text='Отправь локацию или \nЗагрузи координаты - широту, долготу (через запятую, '
-                              'без скобок). \nПример: '
-                              '\n51.678727, 39.206864\nЕсли отправите "нет" или любые символы - место сохранится без '
-                              'координат')
+                         text='Отправь локацию или \nзагрузи координаты - широту, долготу: через запятую, пример: '
+                              '\n51.678727, 39.206864\nЕсли отправить "нет" или любые другие символы - место '
+                              'сохранится без координат')
         update_state(message, COORDINATES)
 
     @bot.message_handler(func=lambda message: get_state(message) == COORDINATES)
-    # @bot.message_handler(content_types=["location"])
     def handle_coordinates(message):
         text = message.text
         try:
