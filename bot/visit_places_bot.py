@@ -212,25 +212,26 @@ def my_bot():
 
         update_place(message.chat.id, "photo_id", photo_id)
         bot.send_message(message.chat.id,
-                         text="Загрузи координаты - широту, долготу (через запятую, без скобок). \nПример: "
-                              "\n51.678727, 39.206864")
+                         text='Отправь локацию или \nЗагрузи координаты - широту, долготу (через запятую, '
+                              'без скобок). \nПример: '
+                              '\n51.678727, 39.206864\nЕсли отправите "нет" или любые символы - место сохранится без '
+                              'координат')
         update_state(message, COORDINATES)
 
     @bot.message_handler(func=lambda message: get_state(message) == COORDINATES)
     # @bot.message_handler(content_types=["location"])
     def handle_coordinates(message):
-        if message.location is not None:
-            coords = [str(message.location.latitude), str(message.location.longitude)]
-        else:
-            # coordinates from text
-            text = message.text
-            try:
-                coords = [str(float(coord.strip())) for coord in text.split(",")]
-            except ValueError:
-                coords = [None, None]
-            if len(coords) < 2:
-                coords = [None, None]  # fixed bug if len(coords) = 1
+        text = message.text
+        try:
+            coords = [str(float(coord.strip())) for coord in text.split(",")]
+        except ValueError:
+            coords = [None, None]
+        if len(coords) < 2:
+            coords = [None, None]  # fixed bug if len(coords) = 1
 
+        place_coords_handler(coords, message)
+
+    def place_coords_handler(coords, message):
         update_place(message.chat.id, "lat", coords[0])
         update_place(message.chat.id, "lon", coords[1])
         place_to_db(message.chat.id)
@@ -280,13 +281,18 @@ def my_bot():
 
     @bot.message_handler(content_types=["location"])
     def handle_location(message):
-        my_location = message.location
-        my_coords = (str(my_location.latitude), str(my_location.longitude))
-        places_less500 = get_places_less500(message.chat.id, my_coords)
-        text_by_success = "Ваши сохраненные места не далее 500м:"
-        text_by_fail = "В радиусе 500м ваших сохраненных мест не обнаружено :(. Вы можете добавить новые места с " \
-                       "помощью команды /add "
-        send_selected_places_to_chat(message, places_less500, text_by_success, text_by_fail)
+        coords = [str(message.location.latitude), str(message.location.longitude)]
+
+        if get_state(message) == COORDINATES:
+            # обрабатываем (сохраняем и т.д.) координаты места
+            place_coords_handler(coords, message)
+        else:
+            # выводим сохраненные места в радиусе 500м
+            places_less500 = get_places_less500(message.chat.id, coords)
+            text_by_success = "Ваши сохраненные места не далее 500м:"
+            text_by_fail = "В радиусе 500м ваших сохраненных мест не обнаружено :(. Вы можете добавить новые места с " \
+                           "помощью команды /add "
+            send_selected_places_to_chat(message, places_less500, text_by_success, text_by_fail)
 
     @bot.message_handler(commands=["reset"])
     def handle_reset(message):
