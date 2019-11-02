@@ -210,12 +210,17 @@ def my_bot():
         else:
             photo_id = None
 
-        update_place(message.chat.id, "photo_id", photo_id)
-        bot.send_message(message.chat.id,
-                         text='Отправь локацию или \nзагрузи координаты - широту, долготу, через запятую, пример: '
-                              '\n51.678727, 39.206864\nЕсли отправить "нет" или любые другие символы - место '
-                              'сохранится без координат')
-        update_state(message, COORDINATES)
+        if get_state(message) == PHOTO:
+            update_place(message.chat.id, "photo_id", photo_id)
+            bot.send_message(message.chat.id,
+                             text='Отправь локацию или \nзагрузи координаты - широту, долготу, через запятую, пример: '
+                                  '\n51.678727, 39.206864\nЕсли отправить "нет" или любые другие символы - место '
+                                  'сохранится без координат')
+            update_state(message, COORDINATES)
+        else:
+            bot.send_message(message.chat.id,
+                             text='Похоже, это было просто фото для меня )). Спасибо!\n(В ваших местах оно не '
+                                  'сохранено)')
 
     @bot.message_handler(func=lambda message: get_state(message) == COORDINATES)
     def handle_coordinates(message):
