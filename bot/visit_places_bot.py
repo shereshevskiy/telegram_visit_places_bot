@@ -155,7 +155,6 @@ def my_bot():
         if dist != no_data_message:
             text += f"Расстояние до вас (м): {dist}\n"
 
-        # TODO переделать эту конструкцию
         if photo_id:
             # send photo with text
             photo = get_photo(photo_id)
@@ -163,12 +162,14 @@ def my_bot():
                 bot.send_photo(message.chat.id, photo, caption=text)
             else:
                 # send message with text
-                text += "Фото: отсутствует"
-                bot.send_message(message.chat.id, text=text)
+                send_message_not_photo(message, text)
         else:
             # send message with text
-            text += "Фото: отсутствует"
-            bot.send_message(message.chat.id, text=text)
+            send_message_not_photo(message, text)
+
+    def send_message_not_photo(message, text):
+        text += "Фото: отсутствует"
+        bot.send_message(message.chat.id, text=text)
 
     def send_selected_places_to_chat(message, selected_places, text_by_success, text_by_fail):
         if not selected_places.empty:
