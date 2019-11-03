@@ -162,13 +162,13 @@ def my_bot():
                 bot.send_photo(message.chat.id, photo, caption=text)
             else:
                 # send message with text
-                send_message_not_photo(message, text)
+                send_message_if_not_photo(message, text)
         else:
             # send message with text
-            send_message_not_photo(message, text)
+            send_message_if_not_photo(message, text)
 
-    def send_message_not_photo(message, text):
-        text += "Фото: отсутствует"
+    def send_message_if_not_photo(message, text):
+        # text += "Фото: отсутствует"
         bot.send_message(message.chat.id, text=text)
 
     def send_selected_places_to_chat(message, selected_places, text_by_success, text_by_fail):
