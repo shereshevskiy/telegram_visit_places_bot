@@ -3,8 +3,8 @@
 \!*/
 \!*
 
-config.cfg
-connect.cfg
+#config.cfg
+#connect.cfg
 
 # Created by https://www.gitignore.io/api/python,pycharm,jupyternotebooks
 # Edit at https://www.gitignore.io/?templates=python,pycharm,jupyternotebooks
